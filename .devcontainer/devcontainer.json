@@ -1,0 +1,24 @@
+{
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli:1": {},
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "20"
+        },
+        "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {
+		    "version": "4"
+        }
+    },
+    "postCreateCommand": "az bicep install",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "github.copilot", // GitHub Copilot AI code completion.
+                "ms-azuretools.vscode-azurefunctions", // Azure Functions support.
+                "ms-azuretools.vscode-azureappservice", // Azure App Service support.
+                "ms-vscode.azurecli", // Az command support.
+                "ms-vscode.vscode-bicep" // Bicep language support.
+            ]
+        }
+    }
+}
