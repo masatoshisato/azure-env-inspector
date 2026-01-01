@@ -1,13 +1,18 @@
 {
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
     "features": {
+        // for Azure CLI
         "ghcr.io/devcontainers/features/azure-cli:1": {},
+        // for Node.js
         "ghcr.io/devcontainers/features/node:1": {
             "version": "20"
         },
+        // for azure functions tools.
         "ghcr.io/jlaundry/devcontainer-features/azure-functions-core-tools:1": {
 		    "version": "4"
-        }
+        },
+        // for azure developer cli (azd)
+        "ghcr.io/azure/azure-dev/azd:latest": {}
     },
     "postCreateCommand": "az bicep install",
     "customizations": {

@@ -1,2 +1,6 @@
 # node.js
 node_modules/
+
+# Azure Developer CLI
+.azure/
+.env
