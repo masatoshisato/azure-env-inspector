@@ -12,7 +12,9 @@
 		    "version": "4"
         },
         // for azure developer cli (azd)
-        "ghcr.io/azure/azure-dev/azd:latest": {}
+        "ghcr.io/azure/azure-dev/azd:latest": {},
+        // for Docker (Docker outside of Docker for GitHub Codespaces)
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
     },
     "postCreateCommand": "az bicep install",
     "customizations": {
