@@ -1,11 +1,19 @@
-# azure-env-inspector
+# Azure-Env-Inspector
 
-# アプリの役割
+## アプリの役割
+Azure環境の「動作確認・構成可視化ツールのサンプル。
+WebApp, StaticWeb、FunctionsApp、KeyVault、Blob Storage、Queue Storage、PSQLが正常稼働していることを複数のエンドポイントで確認する。
 
-Azure環境の「動作確認・構成可視化ツール。
+**PaaS確認**
+* StaticWeb -> WebApp -> Queue -> FunctionApp -> KeyVault
+* StaticWeb -> WebApp -> Blob
+* StaticWeb -> WebApp -> KeyVault
+* StaticWeb -> WebApp -> FunctionApp
+
+**VNet閉域網確認**
+* StaticWeb -> (Hub) AzureFW -> (Spoke) WebApp -> 同上
 
 **出力情報**
-
 - Host名
 - ランタイム情報
 - インスタンスID
@@ -14,7 +22,7 @@ Azure環境の「動作確認・構成可視化ツール。
 - Blob 接続確認
 - Key Vault 接続確認
 
-# 技術スタック
+## 技術スタック
 
 Pythonでも良いが、Azure Functions との親和性はTSが高い（by GPT）
 
@@ -81,7 +89,7 @@ IaCの開発環境版。
     - azure cli
     - vscode-bicep
 
----
+```
 // devcontainer.json
 {
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu",
@@ -106,12 +114,12 @@ IaCの開発環境版。
         }
     }
 }
----
+```
 
-自分の場合は、これにプラスしてvscodevimをブラウザインストール。
-https://github.com/jlaundry/devcontainer-features/tree/main/src/azure-functions-core-tools
+自分の場合は、これにプラスして [vscodevim](https://github.com/jlaundry/devcontainer-features/tree/main/src/azure-functions-core-tools) をブラウザインストール。
 
-# 環境確認方法
+
+## devcontainer.jsonの環境確認方法
 
 確認手順は以下の通り。
 
@@ -120,10 +128,10 @@ https://github.com/jlaundry/devcontainer-features/tree/main/src/azure-functions-
 3. VS Code拡張機能
 4. Azure
 
-## OS/Containerの確認
+### OS/Containerの確認
 
 ターミナルで以下コマンドを実行。→ OK
----
+```
 > cat /etc/os-release
 PRETTY_NAME="Ubuntu 24.04.3 LTS"
 NAME="Ubuntu"
@@ -138,23 +146,23 @@ BUG_REPORT_URL="https://bugs.launchpad.net/ubuntu/"
 PRIVACY_POLICY_URL="https://www.ubuntu.com/legal/terms-and-policies/privacy-policy"
 UBUNTU_CODENAME=noble
 LOGO=ubuntu-logo
----
+```
 
-## Nodeの確認
+### Nodeの確認
 
 ターミナルで以下コマンドを確認。→ OK
----
+```
 > node -v
 v20.19.6
 
 > npm -v
 10.8.2
----
+```
 
-## CLIツールの確認
+### CLIツールの確認
 
 ターミナルで以下コマンドを実行。→ OK
----
+```
 > az version
 {
   "azure-cli": "2.81.0",
@@ -162,34 +170,34 @@ v20.19.6
   "azure-cli-telemetry": "1.1.0",
   "extensions": {}
 }
----
+```
 
-## Azure CLIログイン状態の確認
+### Azure CLIログイン状態の確認
 
 → OK
----
+```
 > az account show
 Please run 'az login' to setup account.
 
 > az login
 To sign in, use a web browser to open the page https://microsoft.com/devicelogin and enter the code xxxxxxxx to authenticate.
----
+```
 
-## Bicep CLIの確認
+### Bicep CLIの確認
 
 → OK
---
+```
 > az bicep version
 Bicep CLI version 0.39.26 (1e90b06e40)
----
+```
 
-## azdの確認
----
+### azdの確認
+```
 > azd version
 azd version 1.22.5 (commit f1850eb726d560d54118b4fa1c5f770d5f38e7f5)
----
+```
 
-## VS Code 拡張機能の確認
+### VS Code 拡張機能の確認
 
 VS CodeのExtensionsで確認。いくつか謎のステータスになっているものがある。
 
@@ -204,19 +212,21 @@ VS CodeのExtensionsで確認。いくつか謎のステータスになってい
 - **Japanese Language Pack for Visual Studio Code (有効化されているけど、ブラウザインストールできる風になってる、でもブラウザインストールしようとするとエラーになる。。)**
 - **GitHub Copilot (グレーアウトされてるっぽいけどインストールされている)**
 
-## Github Copilotの動作確認
+### Github Copilotの動作確認
 
 “test.ts”ファイルを作成し、以下を入力してコード補完されればOK
 
+```
 １行毎に提案されるので、その度にTABキーを押せば、シンプルなHTTPサーバーのコードが生成される。
+```
 
 → OK
----
+```
 // create a simple http server
----
+```
 
 数秒待って、グレー文字で補完され、Tabで確定できればOK.
----
+```
 // create a simple http server
 import * as http from 'http';
 
@@ -233,23 +243,23 @@ server.listen(PORT, () => {
 
 // export the server for testing purposes
 export default server; 
----
+```
 
 このとき、”http”についてモジュールや型宣言が見つからないというエラーが発生し、”@types/node”のインストールが提案される。
----
+```
 モジュール 'http' またはそれに対応する型宣言が見つかりません。
----
+```
 
 これは、TypeScriptの型宣言が見つからないことが原因で、TypeScriptの型チェック機能が警告しているようだ。
 
 Nodeプロジェクトとしてnpm initを実行し、package.jsonファイルを作成してそこにNode用の型チェックモジュールを宣言することで解決するようだ。
 
-## Node.jsの型定義をインストール
+### Node.jsの型定義をインストール
 
-### プロジェクト初期化。
+#### プロジェクト初期化。
 
 package.jsonが作成され、プロジェクトとして認識される。
----
+```
 > npm init -y
 Wrote to /workspaces/azure-env-inspector/package.json:
 
@@ -265,23 +275,23 @@ Wrote to /workspaces/azure-env-inspector/package.json:
   "author": "",
   "license": "ISC"
 }
----
+```
 
-### Node.jsの型定義をインストール
+#### Node.jsの型定義をインストール
 
 開発用途向けにNodeの型定義モジュールをインストールする。
 
 これでnode.jsの型定義がインストールされ、TypeScriptがnode標準のhttpモジュールの型を認識できるようになる。
----
+```
 > npm install --save-dev @types/node
 
 added 2 packages, and audited 3 packages in 910ms
 
 found 0 vulnerabilities
----
+```
 
 これにより、package.jsonは以下のようになる。
----
+```
 {
   "name": "azure-env-inspector",
   "version": "1.0.0",
@@ -297,25 +307,25 @@ found 0 vulnerabilities
     "@types/node": "^25.0.3" // -> これが追加された
   }
 }
----
+```
 
 以上で、httpモジュールの型がTypeScriptで認識され、メッセージは消える。
 
-## Azure Functions拡張機能の確認
+### Azure Functions拡張機能の確認
 
 ターミナルで以下を確認。
 
 バージョン情報が出ればOK。
----
+```
 > func --version
 4.6.0
 
----
+```
 
-## Azure連携の確認
+### Azure連携の確認
 
 Azureサブスクリプションが見れること。
----
+```
 ログインしていない場合
 > az account list -o table
 Please run "az login" to access your accounts.
@@ -325,20 +335,20 @@ Please run "az login" to access your accounts.
 Name                                       CloudName    SubscriptionId                        TenantId                              State    IsDefault
 -----------------------------------------  -----------  ------------------------------------  ------------------------------------  -------  -----------
 Subscription-IBMJPOCKSPOC-MPN-EA-Dev-Test  AzureCloud   48a288e7-d57f-4e9a-b8f7-14042109d26f  ac231d85-5e4a-48a4-9b8d-3e67d4efe6d4  Enabled  True
----
+```
 
-## App Service拡張の確認
+### App Service拡張の確認
 
 左サイドバーのAzureアイコンが表示されており、App Serviceが表示され、サブスクリプションが見える。
 
-## Functions拡張の確認
+### Functions拡張の確認
 
 同じく、Azure → Functions が表示される。
 
-# この時点のGithubソース構成
+## この時点のGithubソース構成
 
 一旦以下のファイル構成でgithubにpush。
----
+```
 azure-env-inspector/
 ├─ .devcontainer/
 │   └─ devconatiner.json
@@ -348,14 +358,14 @@ azure-env-inspector/
 ├─ package.json
 ├─ README.md
 └─ test.ts
----
+```
 
 この状態でgit pushしたが、git lfsというコマンドがインストールされていないためpushできずというエラーが発生。
 
 git lfs（Large File Storage）とは、巨大なファイルをポインタ管理するための仕組み。通常gitでは、すべてのファイルを１つのバージョンとして管理するため、巨大なファイルがあると、ストレージが肥大化する。そのような巨大ファイルは１つのファイルとして保持し、内容に変更がなければポインタとして各バージョンに保存する仕組み。
 
 何やら、リポジトリを作成したときに含まれていたようで、Github Copilotで解決してもらった。
----
+```
 Git LFS (Large File Storage) は、大きなファイルをGitで効率的に管理するための拡張機能です。
 
 通常のGitの問題点
@@ -374,9 +384,9 @@ Git LFSの仕組み
 このリポジトリには.gitattributesファイルがなく、Git LFSで追跡しているファイルもないようです。おそらく過去にGit LFSを設定したが、現在は使用していない状態です。
 
 推奨: Git LFSを使う予定がなければ、**方法2(pre-pushフックを削除)**で問題ありません。
----
+```
 
-# Azureリソースをbicepで準備する
+## Azureリソースをbicepで準備する
 
 ### リソースグループの作成
 
@@ -384,9 +394,9 @@ https://learn.microsoft.com/ja-jp/azure/azure-resource-manager/bicep/create-reso
 
 https://qiita.com/masafullversion/items/d0c1a85a38f624ee2310
 
----
+```
 > az deployment sub create --template-file infra/rg.bicep --location japaneast
----
+```
 “—location”は必須パラメータになったようで。メタデータの格納場所だそうです。
 
 
