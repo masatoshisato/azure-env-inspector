@@ -1,34 +1,46 @@
-// Additional metadata for the Bicep file.
-metadata name = 'Resource Group for Azure Env Inspector'
-metadata version = '1.0.0'
-metadata author = 'masatoshi.sato at gmail.com'
+// Create the resource group.
+//
+// rgName : The name of the resource group to create. 
+//    'rg-aei-je'
+//    Format is used, where 'aei' is the system short name and 'je' is the location short name. 
+//
+// rgLocation : The Azure region where the resource group will be created.
+//    'japaneast'
+//    This is the default location for the resource group.
 
-// Define the target scope for the Bicep deployment.
+metadata name = 'Resource Group for Azure Env Inspector'
 targetScope = 'subscription'
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Parameters for resource group configuration.
-param systemName string = 'azure-env-inspector'
-param systemShort string = 'aei'
-param deptName string = 'default-dept'
-param location string = 'japaneast'
-param locationShort string = 'je'
-param deploymentDate string = utcNow('d')
-param deploymentBy string = 'masatoshi.sato'
-param rgName string = 'rg-${systemShort}-${locationShort}'
+
+param systemName string
+param systemShort string
+param inChargeDeptName string
+param location string
+param locationShort string
+param author string
+param version string
+param rgName string
+
+param deploymentDate string = utcNow('yyyy-MM-dd')
+param deploymentName string = deployment().name
+
+param tags object = {
+  SystemName: systemName
+  DeptName: inChargeDeptName
+  DeploymentDate: deploymentDate
+  DeploymentBy: author
+  DeploymentVersion: version
+  DeploymentName: deploymentName
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Create the resource group with specified tags.
-resource resourceGroup 'Microsoft.Resources/resourceGroups@2025-04-01' = {
+
+resource rgAei 'Microsoft.Resources/resourceGroups@2025-04-01' = {
   name: rgName
   location: location
-  tags: {
-    SystemName: systemName
-    SystemShort: systemShort
-    DeptName: deptName
-    Location: location
-    LocationShort: locationShort
-    DeploymentDate: deploymentDate
-    DeploymentBy: deploymentBy
-  }
+  tags: tags
 }
