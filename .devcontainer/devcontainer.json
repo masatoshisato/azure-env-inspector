@@ -22,7 +22,10 @@
                 "ms-azuretools.vscode-azurefunctions", // Azure Functions support.
                 "ms-azuretools.vscode-azureappservice", // Azure App Service support.
                 "ms-vscode.azurecli", // Az command support.
-                "ms-vscode.vscode-bicep" // Bicep language support.
+                "ms-vscode.vscode-bicep", // Bicep language support.
+                "yzhang.markdown-all-in-one", // Markdown All in One: TOC, format, shortcuts.
+                "shd101wyy.markdown-preview-enhanced", // Markdown Preview Enhanced: Advanced preview.
+                "davidanson.vscode-markdownlint" // Markdownlint: Linting and style checking.
             ]
         }
     }
