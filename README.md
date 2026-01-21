@@ -1,44 +1,190 @@
 # Azure-Env-Inspector
 
-## アプリの役割
-Azure環境の「動作確認・構成可視化ツールのサンプル。
-WebApp, StaticWeb、FunctionsApp、KeyVault、Blob Storage、Queue Storage、PSQLが正常稼働していることを複数のエンドポイントで確認する。
+## プロジェクト概要
+
+Azure環境の動作確認・構成可視化ツールのサンプルプロジェクト。
+Web App, Static Web Apps、Functions App、Key Vault、Blob Storage、Queue Storage、PostgreSQLが正常稼働していることを複数のエンドポイントで確認します。
+
+このプロジェクトは**モノレポ構成**で、インフラストラクチャコードとアプリケーションコードを統合管理しています。
+
+## プロジェクト構造
+
+```
+azure-env-inspector/
+├── infra/                      # インフラストラクチャコード (Bicep)
+│   ├── main.bicep              # メインテンプレート
+│   ├── postgresql.bicep        # PostgreSQL Flexible Server
+│   ├── rg.bicep                # リソースグループ
+│   └── *.bicepparam            # パラメータファイル
+│
+├── apps/                       # アプリケーションコード
+│   └── env-inspector/          # 環境確認アプリ
+│       ├── test.ts
+│       └── package.json
+│
+├── .github/workflows/          # CI/CDパイプライン
+│   ├── infra-deploy.yml        # インフラデプロイ
+│   └── app-deploy.yml          # アプリデプロイ
+│
+├── .devcontainer/              # 開発環境定義
+│   └── devcontainer.json
+│
+├── DEPLOYMENT.md               # デプロイガイド
+└── README.md                   # このファイル
+```
+
+## アプリケーションの役割
 
 **PaaS確認**
-* StaticWeb -> WebApp -> Queue -> FunctionApp -> KeyVault
-* StaticWeb -> WebApp -> Blob
-* StaticWeb -> WebApp -> KeyVault
-* StaticWeb -> WebApp -> FunctionApp
+* Static Web Apps → Web App → Queue → Function App → Key Vault
+* Static Web Apps → Web App → Blob Storage
+* Static Web Apps → Web App → Key Vault
+* Static Web Apps → Web App → Function App
 
 **VNet閉域網確認**
-* StaticWeb -> (Hub) AzureFW -> (Spoke) WebApp -> 同上
+* Static Web Apps → (Hub) Azure Firewall → (Spoke) Web App → 同上
 
 **出力情報**
-- Host名
+- ホスト名
 - ランタイム情報
 - インスタンスID
 - スケールアウト確認
-- PostgreSQL 接続確認
-- Blob 接続確認
-- Key Vault 接続確認
+- PostgreSQL接続確認
+- Blob Storage接続確認
+- Key Vault接続確認
 
 ## 技術スタック
 
-Pythonでも良いが、Azure Functions との親和性はTSが高い（by GPT）
+- **言語・ランタイム**
+  - Web App: Node.js (TypeScript)
+  - Functions: Node.js (TypeScript)
+- **インフラストラクチャ**
+  - Bicep (Infrastructure as Code)
+  - Azure CLI
+- **コード管理**
+  - GitHub (モノレポ)
+- **開発環境**
+  - GitHub Codespaces
+  - VS Code (Web/Local)
+- **CI/CD**
+  - GitHub Actions (パスフィルター対応)
 
-- 言語・ランタイム
-    - WebApp : Node.JS (TypeScript)
-    - Functions : Node.js (typeScript)
-- デプロイ
-    - Bicep
-- コード管理
-    - Github
-- 開発環境
-    - Github CodeSpaces (Safari / VS Code web)
-- CI/CD
-    - Github Actions
+## クイックスタート
 
-# Github Codespacesの仕組み
+### 前提条件
+
+- Azure CLI がインストールされていること
+- Azure サブスクリプションへのアクセス権限
+- GitHub Codespaces または Docker環境（ローカル開発の場合）
+
+### 1. リポジトリのクローン
+
+```bash
+git clone https://github.com/masatoshisato/azure-env-inspector.git
+cd azure-env-inspector
+```
+
+### 2. 開発環境のセットアップ
+
+**GitHub Codespacesの場合:**
+- GitHubでリポジトリを開き、「Code」→「Create codespace on main」
+
+**ローカル開発の場合:**
+```bash
+# VS Codeでリポジトリを開く
+code .
+# Dev Containerで再度開く（拡張機能のプロンプトに従う）
+```
+
+### 3. インフラストラクチャのデプロイ
+
+詳細は[DEPLOYMENT.md](DEPLOYMENT.md)を参照してください。
+
+```bash
+# Azure ログイン
+az login
+
+# デプロイ前の検証（What-If）
+az deployment sub what-if \
+  --location japaneast \
+  --template-file infra/main.bicep \
+  --parameters infra/main.parameters.bicepparam
+
+# デプロイ実行
+az deployment sub create \
+  --name azure-env-inspector-$(date +%Y%m%d-%H%M%S) \
+  --location japaneast \
+  --template-file infra/main.bicep \
+  --parameters infra/main.parameters.bicepparam
+```
+
+### 4. アプリケーションのデプロイ
+
+```bash
+cd apps/env-inspector
+npm install
+npm run build  # （ビルドスクリプトがある場合）
+
+# Azure Web App / Functionsへのデプロイ
+# （具体的なコマンドはデプロイ先に依存）
+```
+
+## CI/CD パイプライン
+
+### インフラストラクチャのデプロイ
+
+- **トリガー**: `infra/` 配下のファイル変更時
+- **処理**:
+  1. Bicep テンプレートの検証
+  2. What-If 分析
+  3. Azure へのデプロイ
+
+### アプリケーションのデプロイ
+
+- **トリガー**: `apps/env-inspector/` 配下のファイル変更時
+- **処理**:
+  1. 依存関係のインストール
+  2. ビルド・テスト
+  3. Azure へのデプロイ
+
+### GitHub Secrets の設定
+
+CI/CDを有効にするには、以下のSecretsを設定してください:
+
+```
+AZURE_CREDENTIALS           # Azureサービスプリンシパル認証情報
+AZURE_SUBSCRIPTION_ID       # AzureサブスクリプションID
+RESOURCE_GROUP_NAME         # リソースグループ名
+WEBAPP_NAME                 # Web App名（オプション）
+FUNCTION_APP_NAME           # Function App名（オプション）
+```
+
+## モノレポの利点
+
+このプロジェクトは、インフラとアプリを1つのリポジトリで管理する**モノレポ構成**を採用しています。
+
+**メリット:**
+- 📁 統合管理: すべてのコードが1箇所に
+- 🚀 柔軟なデプロイ: インフラのみ/アプリのみを独立してデプロイ可能
+- 🔄 一貫性: インフラとアプリのバージョンが連携
+- 🛠️ 開発効率: 1つの開発環境ですべてを扱える
+
+**GitHub Actionsのパスフィルター:**
+```yaml
+# インフラのみデプロイ
+on:
+  push:
+    paths:
+      - 'infra/**'
+
+# アプリのみデプロイ
+on:
+  push:
+    paths:
+      - 'apps/env-inspector/**'
+```
+
+## GitHub Codespaces の仕組み
 
 Github Codespacesは「マネージドなDocker環境」＋ VS Code Webを提供するサービスと捉えることができる。
 

@@ -1,0 +1,135 @@
+name: Deploy Application
+
+on:
+  # 自動トリガー（Secrets設定後に有効化）
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'apps/env-inspector/**'
+  #     - '.github/workflows/app-deploy.yml'
+  
+  # 手動トリガー
+  workflow_dispatch:
+    inputs:
+      app_name:
+        description: 'Application to deploy'
+        required: true
+        default: 'env-inspector'
+        type: choice
+        options:
+          - env-inspector
+
+jobs:
+  build:
+    name: Build Application
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'apps/env-inspector/package-lock.json'
+
+      - name: Install dependencies
+        working-directory: apps/env-inspector
+        run: npm ci
+
+      - name: Run tests
+        working-directory: apps/env-inspector
+        run: npm test --if-present
+
+      - name: Build application
+        working-directory: apps/env-inspector
+        run: npm run build --if-present
+
+      - name: Create deployment package
+        working-directory: apps/env-inspector
+        run: |
+          # アプリケーションファイルをZIPにパッケージ化
+          zip -r ../env-inspector.zip . -x "node_modules/*" "*.git*"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-package
+          path: apps/env-inspector.zip
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    # 本番環境への自動デプロイを防ぐ場合は、以下をコメント解除
+    # environment: 
+    #   name: production
+    
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: app-package
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # Web Appへのデプロイ例
+      - name: Deploy to Azure Web App
+        id: deploy-webapp
+        run: |
+          # Web Appが存在する場合のデプロイ
+          # リソース名は環境変数またはSecretsで管理
+          if [ -n "${{ secrets.WEBAPP_NAME }}" ]; then
+            az webapp deployment source config-zip \
+              --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
+              --name ${{ secrets.WEBAPP_NAME }} \
+              --src env-inspector.zip
+            
+            WEBAPP_URL=$(az webapp show \
+              --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
+              --name ${{ secrets.WEBAPP_NAME }} \
+              --query defaultHostName -o tsv)
+            echo "webapp_url=https://$WEBAPP_URL" >> $GITHUB_OUTPUT
+          fi
+
+      # Azure Functionsへのデプロイ例
+      - name: Deploy to Azure Functions
+        id: deploy-functions
+        run: |
+          # Azure Functionsが存在する場合のデプロイ
+          if [ -n "${{ secrets.FUNCTION_APP_NAME }}" ]; then
+            az functionapp deployment source config-zip \
+              --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
+              --name ${{ secrets.FUNCTION_APP_NAME }} \
+              --src env-inspector.zip
+            
+            FUNC_URL=$(az functionapp show \
+              --resource-group ${{ secrets.RESOURCE_GROUP_NAME }} \
+              --name ${{ secrets.FUNCTION_APP_NAME }} \
+              --query defaultHostName -o tsv)
+            echo "function_url=https://$FUNC_URL" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deployment Summary
+        run: |
+          echo "## Application Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Application: env-inspector" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -n "${{ steps.deploy-webapp.outputs.webapp_url }}" ]; then
+            echo "🌐 Web App URL: ${{ steps.deploy-webapp.outputs.webapp_url }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          if [ -n "${{ steps.deploy-functions.outputs.function_url }}" ]; then
+            echo "⚡ Functions URL: ${{ steps.deploy-functions.outputs.function_url }}" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Resource Group in Azure Portal](https://portal.azure.com/#@/resource/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/${{ secrets.RESOURCE_GROUP_NAME }})" >> $GITHUB_STEP_SUMMARY
